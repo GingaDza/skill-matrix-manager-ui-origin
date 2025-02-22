@@ -5,8 +5,12 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 from .ui_components import UIComponents
+from .category_handlers import CategoryHandlers
+from .data_handlers import DataHandlers
+from .group_handlers import GroupHandlers
+from .tab_handlers import TabHandlers
 
-class InitialSetupBase(QWidget):
+class InitialSetupBase(QWidget, CategoryHandlers, DataHandlers, GroupHandlers, TabHandlers):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.main_window = parent
@@ -96,3 +100,41 @@ class InitialSetupBase(QWidget):
         if current_group:
             group_name = current_group.text()
             self.filter_categories(group_name)
+    
+    # 以下のメソッドは initial_setup.py からの移行
+    def connect_signals(self):
+        """シグナルの接続"""
+        if self.main_window:
+            self.group_list.currentItemChanged.connect(self.on_group_selected)
+            self.category_tree.itemClicked.connect(self.on_category_tree_item_clicked)
+
+    def on_group_selected(self, current, previous):
+        """グループ選択時の処理"""
+        if current and self.main_window:
+            group_name = current.text()
+            index = self.main_window.group_combo.findText(group_name)
+            if index >= 0:
+                self.main_window.group_combo.setCurrentIndex(index)
+
+    def on_category_tree_item_clicked(self, item, column):
+        """カテゴリー・スキルツリーアイテムクリック時の処理"""
+        if item and self.main_window:
+            self.main_window.on_category_tree_item_clicked(item)
+
+    def update_category_tree(self, group_id, user_id=None):
+        """カテゴリー・スキルツリーの更新"""
+        if not self.main_window:
+            return
+
+        # UIアダプターを使用してツリーを更新
+        self.main_window.ui_adapter.update_category_tree(
+            self.category_tree,
+            group_id,
+            user_id
+        )
+
+    def update_group_list(self, groups):
+        """グループリストの更新"""
+        self.group_list.clear()
+        for group in groups.values():
+            self.group_list.addItem(group["name"])
